@@ -14,3 +14,4 @@ if the target set is randomly picked, one should set the random_pick_target to "
 
 c++ code for enumerating all the matched sets in out-set and in-set, and the all matched 2-triple (MMSout,MMSin)
 
+the project in directory TargetControlSampling is is the rewrite project.
