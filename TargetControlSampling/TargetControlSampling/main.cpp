@@ -36,12 +36,12 @@ int main() {
 			link.random_select_target_node(fraction);
 		}
 
-		int sampling_times = 1000;
+		int sampling_times = 1000 * link.get_target_set_size();
 		vector<int>matching_count = link.target_control_node_sampling(sampling_times);
 		compute_frequence_and_write(outfile, matching_count, sampling_times);
 	}
 	else {
-		int sampling_times = 10000;
+		int sampling_times = 1000 * link.get_num_of_nodes();
 		vector<int>matching_count = link.full_contrl_node_sampling(sampling_times);
 		compute_frequence_and_write(outfile, matching_count, sampling_times);
 	}
