@@ -18,7 +18,7 @@ using namespace std;
 int main() {
 	srand(time(NULL));
 	bool isTargetControl = true;
-	isTargetControl = false;
+	//isTargetControl = false;
 	string gpath = "ieee2224_2.txt";
 	string outfile = "driver_node_frequcency.txt";
 	Graph link;

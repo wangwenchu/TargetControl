@@ -203,13 +203,13 @@ std::vector<int> Graph::remove_always_matched_nodes_from_matched_set(const set<i
 	return remain_set;
 }
 
-std::vector<int> Graph::find_alternative_node_set(int select_side, int target_node, const vector<int>& cur_match_list)
+std::vector<int> Graph::find_alternative_node_set(int select_side, int target_node, const vector<int>& cur_match_list,const set<int>&cur_target_set)
 {
 	if (select_side == LEFT) {
 		return find_left_altertive_set(target_node, cur_match_list);
 	}
 	else if (select_side == RIGHT) {
-		return find_right_altertive_set(target_node, cur_match_list);
+		return find_right_altertive_set(target_node, cur_match_list,cur_target_set);
 	}
 	else {
 		cerr << "parameters error!" << endl;
@@ -256,7 +256,7 @@ std::vector<int> Graph::find_left_altertive_set(int target_node, const vector<in
 	return vector<int>(alternative_set.begin() + 1, alternative_set.end());
 }
 
-std::vector<int> Graph::find_right_altertive_set(int target_node, const vector<int>& cur_match_list)
+std::vector<int> Graph::find_right_altertive_set(int target_node, const vector<int>& cur_match_list,const set<int>&cur_target_set)
 {
 	vector<int>last_match_list;
 	vector<int>alternative_set = { target_node };
@@ -266,7 +266,11 @@ std::vector<int> Graph::find_right_altertive_set(int target_node, const vector<i
 		last_match_list = match_right;
 		start_node = last_match_list[target_node];
 		match_right[target_node] = -1;
-		std::fill(mark.begin(), mark.end(), 0);
+
+		std::fill(mark.begin(), mark.end(), 1);
+		for (int x : cur_target_set) {
+			mark[x] = 0;
+		}
 		for (int x : alternative_set) {
 			mark[x] = 1;
 		}
@@ -477,11 +481,18 @@ void Graph::unmatch_right_node_and_max_matching(int unmatch_node, int new_pick_n
 	* 仅仅将已经匹配(除了unmatch_node）的节点和新的替换节点标记为0，表示可以访问
 	*/
 	mark_for_max_matching_a_node(always_match_set, remain_set);
-
+	
+	/*
+	* std::fill(mark.begin(), mark.end(), 0);  
+	* 上一行修改为这样也是可行，但它效率更高，因为u--unmacth_node匹配中，unmatch_node是非always matched
+	* 则u是always matched,故必定能保证从new_pick_node出发寻找增广路径中，u被匹配
+	* 
+	* 之前错误是因为为in侧节点寻找alternative set过程，将target set之外的一些节点标记为未访问
+	*/
 	bool flag = right_dfs(new_pick_node);
 	assert(flag == true && match_left[u] != -1);
 	int v;
-	cur_match_left = match_left;
+	cur_match_left = match_left; 
 	std::fill(cur_match_right.begin(), cur_match_right.end(), -1);
 	for (int i = 0; i < num_node; ++i) {
 		v = match_left[i];
@@ -541,7 +552,7 @@ std::vector<int> Graph::target_control_node_sampling(int sample_times)
 			int pick_1 = rand() % left_remain.size();
 			int left_pick_node = left_remain[pick_1];
 
-			left_alternative = find_alternative_node_set(LEFT, left_pick_node, cur_match_left);
+			left_alternative = find_alternative_node_set(LEFT, left_pick_node, cur_match_left,target_set);
 
 			//display_1(left_alternative);
 			int new_left_matched_node = left_alternative[rand() % left_alternative.size()];
@@ -550,11 +561,11 @@ std::vector<int> Graph::target_control_node_sampling(int sample_times)
 			unmatch_removed_node_and_max_matching_new_node(LEFT, left_pick_node, new_left_matched_node, cur_match_left, cur_match_right, right_always, right_remain);
 		}
 		if (right_remain.size() > 0) {
-			int pick_2 = rand() % right_remain.size();
+			int pick_2 = rand() % right_remain.size();   
 			int right_pick_node = right_remain[pick_2];
 
 
-			right_alternative = find_alternative_node_set(RIGHT, right_pick_node, cur_match_right);
+			right_alternative = find_alternative_node_set(RIGHT, right_pick_node, cur_match_right,target_set);
 			int new_right_matched_node = right_alternative[rand() % right_alternative.size()];
 			right_remain[pick_2] = new_right_matched_node;
 
@@ -611,7 +622,7 @@ std::vector<int> Graph::full_contrl_node_sampling(int sample_times)
 		if (right_remain.size() > 0) {
 			int pick = rand() % right_remain.size();
 			int pick_node_1 = right_remain[pick];
-			alternative_set = find_alternative_node_set(RIGHT, pick_node_1, cur_match_right);
+			alternative_set = find_alternative_node_set(RIGHT, pick_node_1, cur_match_right,target_set);
 			int new_right_matched_node = alternative_set[rand() % alternative_set.size()];
 			right_remain[pick] = new_right_matched_node;
 			//cout << pick_node_1 << "\t" << new_right_matched_node << endl;

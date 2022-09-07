@@ -51,12 +51,12 @@ private:
 	set<int> find_right_always_matched_nodes(const vector<int>& cur_match_list, const set<int>& match_set, const set<int>& cur_target_set);
 	set<int> get_right_unmatched_nodes(const set<int>& cur_target_set, const set<int>& right_match_set);
 	vector<int>remove_always_matched_nodes_from_matched_set(const set<int>& matched_set, const set<int>& always_matched);
-	vector<int> find_alternative_node_set(int select_side, int target_node, const vector<int>& cur_match_list);
+	vector<int> find_alternative_node_set(int select_side, int target_node, const vector<int>& cur_match_list, const set<int>& cur_target_set);
 	void alloc_memory(size_t graphsize);
 	bool left_dfs(int u);
 	bool right_dfs(int u);
 	vector<int>find_left_altertive_set(int target_node, const vector<int>& cur_match_list);
-	vector<int>find_right_altertive_set(int target_node, const vector<int>& cur_match_list);
+	vector<int>find_right_altertive_set(int target_node, const vector<int>& cur_match_list,const set<int>& cur_target_set);
 	set<int>merge_remain_with_always_matched(const vector<int>& remain_set, const set<int>& alway_match);
 	bool isSubset(const set<int>& small_set, const set<int>& big_set);
 	void remove_repeated_nodes(set<int>& s1, const set<int>& s2);
