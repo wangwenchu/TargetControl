@@ -324,7 +324,7 @@ void Graph::remove_repeated_nodes(set<int>& s1, const set<int>& s2)
 void Graph::init_target_node_map_to_original()
 {
 	target_node_map.clear();
-	for (int x : target_set) {
+	for (const int x : target_set) {
 		target_node_map[x] = x;
 	}
 }
@@ -403,10 +403,10 @@ std::vector<int> Graph::get_maped_node(const vector<int>& s, const vector<int>& 
 	return res;
 }
 
-void Graph::unmatch_removed_node_and_max_matching_new_node(int select_side, int unmatch_node, int new_pick_node, vector<int>& cur_match_left, vector<int>& cur_match_right)
+void Graph::unmatch_removed_node_and_max_matching_new_node(int select_side, int unmatch_node, int new_pick_node, vector<int>& cur_match_left, vector<int>& cur_match_right, const set<int>& cur_target_set)
 {
 	if (select_side == LEFT) {
-		unmatch_left_node_and_max_matching(unmatch_node, new_pick_node, cur_match_left, cur_match_right);
+		unmatch_left_node_and_max_matching(unmatch_node, new_pick_node, cur_match_left, cur_match_right, cur_target_set);
 	}
 	else if (select_side == RIGHT) {
 		unmatch_right_node_and_max_matching(unmatch_node, new_pick_node, cur_match_left, cur_match_right);
@@ -443,14 +443,19 @@ void Graph::random_max_matching(set<int>& new_target_set, set<int>& driver_set, 
 
 
 
-void Graph::unmatch_left_node_and_max_matching(int unmatch_node, int new_pick_node, vector<int>& cur_match_left, vector<int>& cur_match_right)
+void Graph::unmatch_left_node_and_max_matching(int unmatch_node, int new_pick_node, vector<int>& cur_match_left, vector<int>& cur_match_right,const set<int>&cur_target_set)
 {
 	int u = cur_match_left[unmatch_node];
 
 	match_right = cur_match_right;
 	match_right[u] = -1;
 
+	std::fill(mark.begin(), mark.end(), 1);
+	for (const int x : cur_target_set) {
+		mark[x] = 0;
+	}
 	bool flag = left_dfs(new_pick_node);
+	
 	assert(flag == true && match_right[u] != -1);
 	int v;
 	cur_match_right = match_right;
@@ -468,6 +473,7 @@ void Graph::unmatch_right_node_and_max_matching(int unmatch_node, int new_pick_n
 	int u = cur_match_right[unmatch_node];
 	match_left = cur_match_left;
 	match_left[u] = -1;
+	std::fill(mark.begin(), mark.end(), 0);
 	bool flag = right_dfs(new_pick_node);
 	assert(flag == true && match_left[u] != -1);
 	int v;
@@ -491,12 +497,12 @@ std::vector<int> Graph::target_control_node_sampling(int sample_times)
 
 	vector<int> cur_match_left = match_left;
 	vector<int> cur_match_right = match_right;
-	set<int>left_always = find_left_always_matched_nodes(cur_match_left, left_match_set);
-	set<int>right_always = find_right_always_matched_nodes(cur_match_right, right_match_set, target_set);
+	set<int>left_always = find_left_always_matched_nodes( cur_match_left, left_match_set);
+	set<int>right_always = find_right_always_matched_nodes(cur_match_right, right_match_set,target_set);
 
 	vector<int>left_remain = remove_always_matched_nodes_from_matched_set(left_match_set, left_always);
 	vector<int>right_remain = remove_always_matched_nodes_from_matched_set(right_match_set, right_always);
-
+	
 	const vector<vector<int>> link_table = in_link;
 
 	vector<int>matching_count(num_node, 0);
@@ -519,13 +525,14 @@ std::vector<int> Graph::target_control_node_sampling(int sample_times)
 		if (left_remain.size() > 0) {
 			int pick_1 = rand() % left_remain.size();
 			int left_pick_node = left_remain[pick_1];
-			//cout << "left picked node:" << left_pick_node << endl;
+			
 			left_alternative = find_alternative_node_set(LEFT, left_pick_node, cur_match_left);
 
 			//display_1(left_alternative);
 			int new_left_matched_node = left_alternative[rand() % left_alternative.size()];
 			left_remain[pick_1] = new_left_matched_node;
-			unmatch_removed_node_and_max_matching_new_node(LEFT, left_pick_node, new_left_matched_node, cur_match_left, cur_match_right);
+			//cout << left_pick_node << "\t" << new_left_matched_node <<  endl;
+			unmatch_removed_node_and_max_matching_new_node(LEFT, left_pick_node, new_left_matched_node, cur_match_left, cur_match_right,target_set);
 		}
 		if (right_remain.size() > 0) {
 			int pick_2 = rand() % right_remain.size();
@@ -537,9 +544,9 @@ std::vector<int> Graph::target_control_node_sampling(int sample_times)
 			right_remain[pick_2] = new_right_matched_node;
 
 			//cout << "right picked node:" << right_pick_node << "\t" << new_right_matched_node << endl;
-			unmatch_removed_node_and_max_matching_new_node(RIGHT, right_pick_node, new_right_matched_node, cur_match_left, cur_match_right);
+			unmatch_removed_node_and_max_matching_new_node(RIGHT, right_pick_node, new_right_matched_node, cur_match_left, cur_match_right,target_set);
 		}
-
+		//display_1(cur_match_left);
 		left_match_set = merge_remain_with_always_matched(left_remain, left_always);
 		right_match_set = merge_remain_with_always_matched(right_remain, right_always);
 		driver_set = get_right_unmatched_nodes(target_set, right_match_set);
@@ -568,13 +575,13 @@ std::vector<int> Graph::full_contrl_node_sampling(int sample_times)
 
 	pair<set<int>, set<int>> out_in_match_set = max_matching(new_target_set);
 	set<int> right_match_set = out_in_match_set.second;
-
+	
 	vector<int> cur_match_left = match_left;
 	vector<int> cur_match_right = match_right;
 
 	set<int>right_always = find_right_always_matched_nodes(cur_match_right, right_match_set, new_target_set);
 	vector<int>right_remain = remove_always_matched_nodes_from_matched_set(right_match_set, right_always);
-
+	
 	vector<int>matching_count(num_node, 0);
 	vector<int>alternative_set;
 	set<int>driver_set;
@@ -589,12 +596,12 @@ std::vector<int> Graph::full_contrl_node_sampling(int sample_times)
 			int new_right_matched_node = alternative_set[rand() % alternative_set.size()];
 			right_remain[pick] = new_right_matched_node;
 			//cout << pick_node_1 << "\t" << new_right_matched_node << endl;
-			unmatch_removed_node_and_max_matching_new_node(RIGHT, pick_node_1, new_right_matched_node, cur_match_left, cur_match_right);
+			unmatch_removed_node_and_max_matching_new_node(RIGHT, pick_node_1, new_right_matched_node, cur_match_left, cur_match_right,target_set);
 		}
 
 		right_match_set = merge_remain_with_always_matched(right_remain, right_always);
 		driver_set = get_right_unmatched_nodes(new_target_set, right_match_set);
-
+	
 		for (int x : driver_set) {
 			++matching_count[x];
 		}
